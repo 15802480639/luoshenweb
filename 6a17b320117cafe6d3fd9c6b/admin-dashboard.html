@@ -1,0 +1,2368 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>综合后台管理系统</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --primary-color: #1e88e5;
+            --primary-dark: #1565c0;
+            --primary-light: #e3f2fd;
+            --secondary-color: #ff6f00;
+            --secondary-light: #fff3e0;
+            --bg-color: #f5f7fa;
+            --sidebar-bg: #1a237e;
+            --sidebar-hover: rgba(255,255,255,0.08);
+            --sidebar-active: rgba(30,136,229,0.25);
+            --text-dark: #333;
+            --text-light: #666;
+            --text-muted: #999;
+            --white: #fff;
+            --border-color: #e0e0e0;
+            --success-color: #4caf50;
+            --warning-color: #ff9800;
+            --danger-color: #f44336;
+            --info-color: #2196f3;
+            --shadow-sm: 0 2px 8px rgba(0,0,0,0.06);
+            --shadow-md: 0 4px 16px rgba(0,0,0,0.1);
+            --shadow-lg: 0 8px 32px rgba(0,0,0,0.12);
+            --radius-sm: 6px;
+            --radius-md: 10px;
+            --radius-lg: 16px;
+        }
+        body {
+            font-family: 'Microsoft YaHei', 'Segoe UI', 'PingFang SC', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-dark);
+            overflow-x: hidden;
+        }
+
+        /* ========== Toast 通知 ========== */
+        .toast-container {
+            position: fixed;
+            top: 80px;
+            right: 20px;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .toast {
+            padding: 14px 24px;
+            border-radius: var(--radius-md);
+            color: var(--white);
+            font-size: 14px;
+            box-shadow: var(--shadow-lg);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            animation: toastIn 0.4s ease;
+            min-width: 280px;
+        }
+        .toast.success { background: linear-gradient(135deg, #4caf50, #388e3c); }
+        .toast.error { background: linear-gradient(135deg, #f44336, #d32f2f); }
+        .toast.warning { background: linear-gradient(135deg, #ff9800, #f57c00); }
+        .toast.info { background: linear-gradient(135deg, #2196f3, #1976d2); }
+        .toast.removing { animation: toastOut 0.3s ease forwards; }
+        @keyframes toastIn { from { opacity:0; transform:translateX(100px); } to { opacity:1; transform:translateX(0); } }
+        @keyframes toastOut { from { opacity:1; transform:translateX(0); } to { opacity:0; transform:translateX(100px); } }
+
+        /* ========== 顶部导航栏 ========== */
+        .top-header {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+            color: var(--white);
+            padding: 0 24px;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: fixed;
+            top: 0; left: 0; right: 0;
+            z-index: 1000;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.15);
+        }
+        .logo-section {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+        .logo {
+            width: 40px; height: 40px;
+            background: var(--white);
+            border-radius: var(--radius-sm);
+            display: flex; align-items: center; justify-content: center;
+            color: var(--primary-color);
+            font-size: 20px; font-weight: bold;
+        }
+        .brand-name { font-size: 18px; font-weight: 600; letter-spacing: 0.5px; }
+        .header-right {
+            display: flex; align-items: center; gap: 16px;
+        }
+        .btn-view-front {
+            background: var(--secondary-color);
+            color: var(--white);
+            border: none;
+            padding: 8px 18px;
+            border-radius: 20px;
+            font-size: 13px;
+            cursor: pointer;
+            display: flex; align-items: center; gap: 6px;
+            text-decoration: none;
+            transition: all 0.3s;
+            font-weight: 500;
+        }
+        .btn-view-front:hover {
+            background: #e65100;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(255,111,0,0.4);
+        }
+        .header-icon {
+            position: relative; cursor: pointer;
+            padding: 8px; border-radius: 50%;
+            transition: background 0.3s;
+        }
+        .header-icon:hover { background: rgba(255,255,255,0.15); }
+        .badge {
+            position: absolute; top: 2px; right: 2px;
+            background: var(--secondary-color); color: var(--white);
+            font-size: 10px; padding: 2px 5px; border-radius: 10px;
+        }
+        .user-profile {
+            display: flex; align-items: center; gap: 10px;
+            cursor: pointer; padding: 5px 12px; border-radius: 20px;
+            transition: background 0.3s;
+        }
+        .user-profile:hover { background: rgba(255,255,255,0.15); }
+        .user-avatar {
+            width: 34px; height: 34px; border-radius: 50%;
+            background: var(--secondary-color);
+            display: flex; align-items: center; justify-content: center;
+            font-weight: bold; font-size: 14px;
+        }
+
+        /* ========== 侧边栏 ========== */
+        .sidebar {
+            position: fixed; left: 0; top: 60px; bottom: 0;
+            width: 260px;
+            background: var(--sidebar-bg);
+            color: var(--white);
+            overflow-y: auto;
+            z-index: 999;
+            transition: all 0.3s;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(255,255,255,0.2) transparent;
+        }
+        .sidebar::-webkit-scrollbar { width: 4px; }
+        .sidebar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 2px; }
+        .sidebar-menu { padding: 15px 0; }
+        .menu-category {
+            padding: 18px 20px 8px;
+            font-size: 11px;
+            text-transform: uppercase;
+            color: rgba(255,255,255,0.4);
+            letter-spacing: 2px;
+            font-weight: 600;
+        }
+        .menu-item {
+            padding: 11px 20px;
+            display: flex; align-items: center; gap: 12px;
+            cursor: pointer;
+            transition: all 0.25s;
+            border-left: 3px solid transparent;
+            font-size: 14px;
+            position: relative;
+        }
+        .menu-item:hover {
+            background: var(--sidebar-hover);
+            border-left-color: var(--primary-color);
+        }
+        .menu-item.active {
+            background: var(--sidebar-active);
+            border-left-color: var(--primary-color);
+        }
+        .menu-item i:first-child { width: 20px; text-align: center; font-size: 15px; }
+        .menu-item .arrow {
+            margin-left: auto; transition: transform 0.3s; font-size: 12px;
+        }
+        .menu-item.expanded .arrow { transform: rotate(90deg); }
+        .submenu {
+            display: none;
+            background: rgba(0,0,0,0.15);
+        }
+        .submenu.show { display: block; }
+        .submenu-item {
+            padding: 9px 20px 9px 55px;
+            cursor: pointer;
+            transition: all 0.25s;
+            font-size: 13px;
+            color: rgba(255,255,255,0.7);
+            position: relative;
+        }
+        .submenu-item::before {
+            content: '';
+            position: absolute;
+            left: 35px; top: 50%;
+            width: 5px; height: 5px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.3);
+            transform: translateY(-50%);
+            transition: all 0.25s;
+        }
+        .submenu-item:hover {
+            background: var(--sidebar-hover);
+            color: var(--white);
+        }
+        .submenu-item:hover::before { background: var(--white); }
+        .submenu-item.active {
+            color: #64b5f6;
+        }
+        .submenu-item.active::before {
+            background: var(--primary-color);
+            box-shadow: 0 0 6px var(--primary-color);
+        }
+
+        /* ========== 主内容区 ========== */
+        .main-content {
+            margin-left: 260px;
+            margin-top: 60px;
+            padding: 24px;
+            min-height: calc(100vh - 60px);
+        }
+        .page-content { display: none; }
+        .page-content.active { display: block; }
+
+        /* ========== 页面标题 ========== */
+        .page-header {
+            background: var(--white);
+            padding: 20px 24px;
+            border-radius: var(--radius-md);
+            margin-bottom: 24px;
+            box-shadow: var(--shadow-sm);
+        }
+        .breadcrumb {
+            display: flex; align-items: center; gap: 8px;
+            margin-bottom: 8px; font-size: 13px; color: var(--text-light);
+        }
+        .breadcrumb a {
+            color: var(--primary-color); text-decoration: none;
+            transition: color 0.2s;
+        }
+        .breadcrumb a:hover { color: var(--primary-dark); }
+        .page-title { font-size: 22px; font-weight: 600; color: var(--text-dark); }
+
+        /* ========== 统计卡片 ========== */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+            margin-bottom: 24px;
+        }
+        .stat-card {
+            background: var(--white);
+            padding: 22px;
+            border-radius: var(--radius-md);
+            box-shadow: var(--shadow-sm);
+            display: flex; align-items: center; gap: 16px;
+            transition: transform 0.3s, box-shadow 0.3s;
+            cursor: default;
+        }
+        .stat-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-md);
+        }
+        .stat-icon {
+            width: 56px; height: 56px;
+            border-radius: var(--radius-md);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 24px; flex-shrink: 0;
+        }
+        .stat-icon.blue { background: rgba(30,136,229,0.1); color: var(--primary-color); }
+        .stat-icon.orange { background: rgba(255,111,0,0.1); color: var(--secondary-color); }
+        .stat-icon.green { background: rgba(76,175,80,0.1); color: var(--success-color); }
+        .stat-icon.red { background: rgba(244,67,54,0.1); color: var(--danger-color); }
+        .stat-icon.purple { background: rgba(156,39,176,0.1); color: #9c27b0; }
+        .stat-info h3 { font-size: 26px; font-weight: 700; margin-bottom: 4px; }
+        .stat-info p { color: var(--text-light); font-size: 13px; }
+
+        /* ========== 卡片 ========== */
+        .content-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 20px;
+            margin-bottom: 24px;
+        }
+        .card {
+            background: var(--white);
+            border-radius: var(--radius-md);
+            box-shadow: var(--shadow-sm);
+            overflow: hidden;
+        }
+        .card-header {
+            padding: 18px 22px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex; align-items: center; justify-content: space-between;
+        }
+        .card-title { font-size: 16px; font-weight: 600; }
+        .card-actions { display: flex; gap: 8px; }
+        .card-body { padding: 22px; }
+
+        /* ========== 按钮 ========== */
+        .btn {
+            padding: 8px 16px;
+            border: none; border-radius: var(--radius-sm);
+            cursor: pointer; font-size: 13px;
+            transition: all 0.25s;
+            display: inline-flex; align-items: center; gap: 6px;
+            font-family: inherit;
+        }
+        .btn-primary { background: var(--primary-color); color: var(--white); }
+        .btn-primary:hover { background: var(--primary-dark); box-shadow: 0 3px 10px rgba(30,136,229,0.3); }
+        .btn-secondary { background: var(--secondary-color); color: var(--white); }
+        .btn-secondary:hover { background: #e65100; }
+        .btn-success { background: var(--success-color); color: var(--white); }
+        .btn-success:hover { background: #388e3c; }
+        .btn-danger { background: var(--danger-color); color: var(--white); }
+        .btn-danger:hover { background: #d32f2f; }
+        .btn-outline {
+            background: transparent;
+            border: 1px solid var(--border-color);
+            color: var(--text-dark);
+        }
+        .btn-outline:hover { background: var(--bg-color); border-color: var(--primary-color); color: var(--primary-color); }
+        .btn-sm { padding: 5px 12px; font-size: 12px; }
+
+        /* ========== 表格 ========== */
+        .data-table { width: 100%; border-collapse: collapse; }
+        .data-table th, .data-table td {
+            padding: 12px 14px;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+            font-size: 13px;
+        }
+        .data-table th {
+            background: var(--bg-color);
+            font-weight: 600;
+            color: var(--text-dark);
+            white-space: nowrap;
+        }
+        .data-table tr:hover { background: rgba(30,136,229,0.03); }
+        .data-table td { vertical-align: middle; }
+        .status-badge {
+            padding: 4px 12px; border-radius: 20px;
+            font-size: 12px; font-weight: 500;
+            display: inline-block;
+        }
+        .status-success { background: rgba(76,175,80,0.1); color: var(--success-color); }
+        .status-warning { background: rgba(255,152,0,0.1); color: var(--warning-color); }
+        .status-danger { background: rgba(244,67,54,0.1); color: var(--danger-color); }
+        .status-info { background: rgba(30,136,229,0.1); color: var(--primary-color); }
+        .action-btns { display: flex; gap: 6px; }
+        .action-btn {
+            width: 32px; height: 32px; border: none;
+            border-radius: var(--radius-sm); cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            transition: all 0.25s; font-size: 13px;
+        }
+        .action-btn.view { background: rgba(30,136,229,0.1); color: var(--primary-color); }
+        .action-btn.edit { background: rgba(255,152,0,0.1); color: var(--warning-color); }
+        .action-btn.delete { background: rgba(244,67,54,0.1); color: var(--danger-color); }
+        .action-btn:hover { transform: scale(1.15); box-shadow: var(--shadow-sm); }
+
+        /* ========== 搜索和工具栏 ========== */
+        .toolbar {
+            display: flex; align-items: center; justify-content: space-between;
+            margin-bottom: 18px; gap: 12px; flex-wrap: wrap;
+        }
+        .search-box {
+            position: relative; flex: 1; max-width: 360px;
+        }
+        .search-box input {
+            width: 100%;
+            padding: 10px 14px 10px 40px;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            font-size: 13px;
+            transition: all 0.3s;
+            font-family: inherit;
+        }
+        .search-box input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(30,136,229,0.1);
+        }
+        .search-box i {
+            position: absolute; left: 14px; top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-muted);
+        }
+
+        /* ========== 分页 ========== */
+        .pagination {
+            display: flex; justify-content: flex-end;
+            align-items: center; gap: 4px;
+            margin-top: 18px;
+        }
+        .pagination-info { font-size: 13px; color: var(--text-light); margin-right: 12px; }
+        .page-btn {
+            padding: 7px 12px;
+            border: 1px solid var(--border-color);
+            background: var(--white); cursor: pointer;
+            border-radius: var(--radius-sm);
+            transition: all 0.25s; font-size: 13px;
+            font-family: inherit;
+        }
+        .page-btn:hover { background: var(--bg-color); border-color: var(--primary-color); }
+        .page-btn.active { background: var(--primary-color); color: var(--white); border-color: var(--primary-color); }
+        .page-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+        /* ========== 模态框 ========== */
+        .modal {
+            display: none;
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 2000;
+            align-items: center; justify-content: center;
+            backdrop-filter: blur(2px);
+        }
+        .modal.show { display: flex; }
+        .modal-content {
+            background: var(--white);
+            border-radius: var(--radius-lg);
+            width: 90%; max-width: 640px;
+            max-height: 90vh; overflow-y: auto;
+            animation: modalSlide 0.3s ease;
+            box-shadow: var(--shadow-lg);
+        }
+        .modal-content.wide { max-width: 800px; }
+        @keyframes modalSlide {
+            from { opacity: 0; transform: translateY(-30px) scale(0.97); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        .modal-header {
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex; align-items: center; justify-content: space-between;
+        }
+        .modal-title { font-size: 17px; font-weight: 600; }
+        .modal-close {
+            background: none; border: none;
+            font-size: 22px; cursor: pointer;
+            color: var(--text-light);
+            width: 32px; height: 32px;
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            transition: all 0.2s;
+        }
+        .modal-close:hover { background: var(--bg-color); color: var(--text-dark); }
+        .modal-body { padding: 24px; }
+        .modal-footer {
+            padding: 16px 24px;
+            border-top: 1px solid var(--border-color);
+            display: flex; justify-content: flex-end; gap: 10px;
+        }
+
+        /* ========== 确认弹窗 ========== */
+        .confirm-content { text-align: center; padding: 30px 20px; }
+        .confirm-icon {
+            width: 64px; height: 64px;
+            border-radius: 50%;
+            margin: 0 auto 16px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 28px;
+        }
+        .confirm-icon.warning { background: rgba(255,152,0,0.1); color: var(--warning-color); }
+        .confirm-icon.danger { background: rgba(244,67,54,0.1); color: var(--danger-color); }
+        .confirm-title { font-size: 18px; font-weight: 600; margin-bottom: 8px; }
+        .confirm-text { color: var(--text-light); font-size: 14px; }
+
+        /* ========== 表单 ========== */
+        .form-group { margin-bottom: 18px; }
+        .form-label {
+            display: block; margin-bottom: 6px;
+            font-weight: 500; font-size: 13px; color: var(--text-dark);
+        }
+        .form-label .required { color: var(--danger-color); margin-left: 2px; }
+        .form-control {
+            width: 100%;
+            padding: 10px 14px;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            font-size: 13px;
+            transition: all 0.3s;
+            font-family: inherit;
+        }
+        .form-control:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(30,136,229,0.1);
+        }
+        textarea.form-control { resize: vertical; min-height: 80px; }
+        select.form-control { cursor: pointer; }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+        .form-hint { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+
+        /* ========== 任务列表 ========== */
+        .task-list { list-style: none; }
+        .task-item {
+            display: flex; align-items: center; gap: 12px;
+            padding: 14px 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .task-item:last-child { border-bottom: none; }
+        .task-checkbox {
+            width: 20px; height: 20px;
+            border: 2px solid var(--border-color);
+            border-radius: 4px; cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            transition: all 0.3s; flex-shrink: 0;
+        }
+        .task-checkbox.checked {
+            background: var(--success-color);
+            border-color: var(--success-color);
+            color: var(--white);
+        }
+        .task-content { flex: 1; }
+        .task-title { font-weight: 500; margin-bottom: 3px; font-size: 13px; }
+        .task-meta { font-size: 12px; color: var(--text-light); }
+        .task-priority {
+            padding: 3px 8px; border-radius: 4px;
+            font-size: 11px; font-weight: 500; flex-shrink: 0;
+        }
+        .priority-high { background: rgba(244,67,54,0.1); color: var(--danger-color); }
+        .priority-medium { background: rgba(255,152,0,0.1); color: var(--warning-color); }
+        .priority-low { background: rgba(76,175,80,0.1); color: var(--success-color); }
+
+        /* ========== 通知列表 ========== */
+        .notification-list { list-style: none; }
+        .notification-item {
+            display: flex; gap: 12px; padding: 14px 0;
+            border-bottom: 1px solid var(--border-color);
+            transition: background 0.2s;
+        }
+        .notification-item:last-child { border-bottom: none; }
+        .notification-icon {
+            width: 38px; height: 38px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0; font-size: 14px;
+        }
+        .notification-content { flex: 1; }
+        .notification-title { font-weight: 500; margin-bottom: 3px; font-size: 13px; }
+        .notification-text { font-size: 12px; color: var(--text-light); margin-bottom: 4px; }
+        .notification-time { font-size: 11px; color: var(--text-muted); }
+
+        /* ========== 快捷操作 ========== */
+        .quick-actions {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        .quick-action-item {
+            background: var(--white);
+            padding: 20px; border-radius: var(--radius-md);
+            text-align: center; cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: var(--shadow-sm);
+        }
+        .quick-action-item:hover {
+            transform: translateY(-3px);
+            box-shadow: var(--shadow-md);
+        }
+        .quick-action-icon {
+            width: 48px; height: 48px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            margin: 0 auto 10px; font-size: 20px;
+        }
+        .quick-action-item span { font-size: 13px; color: var(--text-dark); }
+
+        /* ========== 图表占位 ========== */
+        .chart-container {
+            height: 280px;
+            display: flex; align-items: center; justify-content: center;
+            background: var(--bg-color);
+            border-radius: var(--radius-sm);
+            color: var(--text-light);
+        }
+
+        /* ========== 页脚 ========== */
+        .footer {
+            margin-left: 260px;
+            padding: 20px 24px;
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 13px;
+            border-top: 1px solid var(--border-color);
+            margin-top: 20px;
+        }
+
+        /* ========== 空状态 ========== */
+        .empty-state {
+            text-align: center; padding: 60px 20px;
+        }
+        .empty-state i { font-size: 56px; color: var(--border-color); margin-bottom: 16px; }
+        .empty-state h3 { font-size: 16px; color: var(--text-light); margin-bottom: 6px; }
+        .empty-state p { font-size: 13px; color: var(--text-muted); }
+
+        /* ========== 标签页 ========== */
+        .tabs {
+            display: flex; gap: 0;
+            margin-bottom: 20px;
+            border-bottom: 2px solid var(--border-color);
+        }
+        .tab {
+            padding: 10px 20px; cursor: pointer;
+            border-bottom: 2px solid transparent;
+            margin-bottom: -2px;
+            transition: all 0.25s;
+            font-size: 14px;
+            color: var(--text-light);
+        }
+        .tab:hover { color: var(--primary-color); }
+        .tab.active {
+            color: var(--primary-color);
+            border-bottom-color: var(--primary-color);
+            font-weight: 600;
+        }
+
+        /* ========== 进度条 ========== */
+        .progress-bar {
+            height: 8px; background: var(--bg-color);
+            border-radius: 4px; overflow: hidden;
+        }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary-color), var(--primary-dark));
+            border-radius: 4px;
+            transition: width 0.5s ease;
+        }
+
+        /* ========== 轮播图管理 ========== */
+        .banner-list { display: flex; flex-direction: column; gap: 14px; }
+        .banner-item {
+            display: flex; align-items: center; gap: 16px;
+            padding: 14px; border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            transition: all 0.25s;
+        }
+        .banner-item:hover { border-color: var(--primary-color); box-shadow: var(--shadow-sm); }
+        .banner-thumb {
+            width: 120px; height: 68px;
+            border-radius: var(--radius-sm);
+            background: var(--bg-color);
+            display: flex; align-items: center; justify-content: center;
+            overflow: hidden; flex-shrink: 0;
+        }
+        .banner-thumb img { width: 100%; height: 100%; object-fit: cover; }
+        .banner-info { flex: 1; }
+        .banner-info h4 { font-size: 14px; margin-bottom: 4px; }
+        .banner-info p { font-size: 12px; color: var(--text-light); }
+
+        /* ========== 统计数据编辑 ========== */
+        .stats-edit-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+        }
+        .stats-edit-item {
+            background: var(--bg-color);
+            padding: 20px;
+            border-radius: var(--radius-md);
+            text-align: center;
+        }
+        .stats-edit-item label {
+            display: block; font-size: 13px;
+            color: var(--text-light); margin-bottom: 8px;
+        }
+        .stats-edit-item input {
+            width: 100%; padding: 10px;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            text-align: center; font-size: 20px;
+            font-weight: 700; font-family: inherit;
+        }
+        .stats-edit-item input:focus {
+            outline: none; border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(30,136,229,0.1);
+        }
+
+        /* ========== 响应式 ========== */
+        @media (max-width: 1200px) {
+            .stats-grid { grid-template-columns: repeat(2, 1fr); }
+            .content-grid { grid-template-columns: 1fr; }
+            .quick-actions { grid-template-columns: repeat(2, 1fr); }
+            .stats-edit-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+        @media (max-width: 768px) {
+            .sidebar { transform: translateX(-100%); }
+            .sidebar.show { transform: translateX(0); }
+            .main-content, .footer { margin-left: 0; }
+            .stats-grid { grid-template-columns: 1fr; }
+            .quick-actions { grid-template-columns: repeat(2, 1fr); }
+            .stats-edit-grid { grid-template-columns: 1fr; }
+            .form-row { grid-template-columns: 1fr; }
+            .toolbar { flex-direction: column; align-items: stretch; }
+            .search-box { max-width: 100%; }
+        }
+
+        /* ========== 滚动条 ========== */
+        .main-content::-webkit-scrollbar { width: 6px; }
+        .main-content::-webkit-scrollbar-thumb { background: #ccc; border-radius: 3px; }
+    </style>
+</head>
+<body>
+    <!-- Toast 容器 -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <!-- 顶部导航 -->
+    <header class="top-header">
+        <div class="logo-section">
+            <div class="logo"><i class="fas fa-shield-alt"></i></div>
+            <span class="brand-name">综合后台管理系统</span>
+        </div>
+        <div class="header-right">
+            <a href="index.html" target="_blank" class="btn-view-front">
+                <i class="fas fa-external-link-alt"></i> 查看前台
+            </a>
+            <div class="header-icon" title="搜索"><i class="fas fa-search"></i></div>
+            <div class="header-icon" title="通知">
+                <i class="fas fa-bell"></i>
+                <span class="badge">5</span>
+            </div>
+            <div class="header-icon" title="消息">
+                <i class="fas fa-envelope"></i>
+                <span class="badge">3</span>
+            </div>
+            <div class="user-profile">
+                <div class="user-avatar">管</div>
+                <span>管理员</span>
+                <i class="fas fa-chevron-down" style="font-size:11px;"></i>
+            </div>
+        </div>
+    </header>
+
+    <!-- 侧边栏 -->
+    <aside class="sidebar">
+        <div class="sidebar-menu">
+            <div class="menu-category">主菜单</div>
+            <div class="menu-item active" data-page="dashboard" onclick="showPage('dashboard', this)">
+                <i class="fas fa-tachometer-alt"></i>
+                <span>控制台</span>
+            </div>
+
+            <div class="menu-category">保后业务</div>
+            <div class="menu-item" onclick="toggleSubmenu(this)">
+                <i class="fas fa-file-contract"></i>
+                <span>保单管理</span>
+                <i class="fas fa-chevron-right arrow"></i>
+            </div>
+            <div class="submenu">
+                <div class="submenu-item" data-page="policy-list" onclick="showPage('policy-list', this)">保单列表</div>
+                <div class="submenu-item" data-page="policy-add" onclick="showPage('policy-add', this)">新增保单</div>
+                <div class="submenu-item" data-page="policy-review" onclick="showPage('policy-review', this)">保单审核</div>
+            </div>
+            <div class="menu-item" onclick="toggleSubmenu(this)">
+                <i class="fas fa-user-shield"></i>
+                <span>客户管理</span>
+                <i class="fas fa-chevron-right arrow"></i>
+            </div>
+            <div class="submenu">
+                <div class="submenu-item" data-page="customer-list" onclick="showPage('customer-list', this)">客户列表</div>
+                <div class="submenu-item" data-page="customer-risk" onclick="showPage('customer-risk', this)">风险评估</div>
+                <div class="submenu-item" data-page="customer-credit" onclick="showPage('customer-credit', this)">信用管理</div>
+            </div>
+            <div class="menu-item" onclick="toggleSubmenu(this)">
+                <i class="fas fa-tasks"></i>
+                <span>保后管理</span>
+                <i class="fas fa-chevron-right arrow"></i>
+            </div>
+            <div class="submenu">
+                <div class="submenu-item" data-page="post-inspection" onclick="showPage('post-inspection', this)">保后检查</div>
+                <div class="submenu-item" data-page="post-monitoring" onclick="showPage('post-monitoring', this)">风险监控</div>
+                <div class="submenu-item" data-page="post-warning" onclick="showPage('post-warning', this)">预警管理</div>
+            </div>
+            <div class="menu-item" onclick="toggleSubmenu(this)">
+                <i class="fas fa-chart-bar"></i>
+                <span>数据统计</span>
+                <i class="fas fa-chevron-right arrow"></i>
+            </div>
+            <div class="submenu">
+                <div class="submenu-item" data-page="report-business" onclick="showPage('report-business', this)">业务报表</div>
+                <div class="submenu-item" data-page="report-risk" onclick="showPage('report-risk', this)">风险报表</div>
+                <div class="submenu-item" data-page="report-finance" onclick="showPage('report-finance', this)">财务报表</div>
+            </div>
+
+            <div class="menu-category">前端管理</div>
+            <div class="menu-item" data-page="front-company" onclick="showPage('front-company', this)">
+                <i class="fas fa-building"></i>
+                <span>公司信息管理</span>
+            </div>
+            <div class="menu-item" data-page="front-products" onclick="showPage('front-products', this)">
+                <i class="fas fa-box-open"></i>
+                <span>产品管理</span>
+            </div>
+            <div class="menu-item" data-page="front-projects" onclick="showPage('front-projects', this)">
+                <i class="fas fa-project-diagram"></i>
+                <span>项目管理</span>
+            </div>
+            <div class="menu-item" data-page="front-news" onclick="showPage('front-news', this)">
+                <i class="fas fa-newspaper"></i>
+                <span>新闻管理</span>
+            </div>
+            <div class="menu-item" data-page="front-banners" onclick="showPage('front-banners', this)">
+                <i class="fas fa-images"></i>
+                <span>轮播图管理</span>
+            </div>
+            <div class="menu-item" data-page="front-stats" onclick="showPage('front-stats', this)">
+                <i class="fas fa-sort-numeric-up"></i>
+                <span>统计数据管理</span>
+            </div>
+
+            <div class="menu-category">系统设置</div>
+            <div class="menu-item" data-page="system-user" onclick="showPage('system-user', this)">
+                <i class="fas fa-users-cog"></i>
+                <span>用户管理</span>
+            </div>
+            <div class="menu-item" data-page="system-role" onclick="showPage('system-role', this)">
+                <i class="fas fa-user-lock"></i>
+                <span>权限管理</span>
+            </div>
+            <div class="menu-item" data-page="system-log" onclick="showPage('system-log', this)">
+                <i class="fas fa-history"></i>
+                <span>操作日志</span>
+            </div>
+            <div class="menu-item" data-page="system-setting" onclick="showPage('system-setting', this)">
+                <i class="fas fa-cog"></i>
+                <span>系统设置</span>
+            </div>
+        </div>
+    </aside>
+
+    <!-- 主内容区 -->
+    <main class="main-content">
+
+        <!-- ==================== 控制台 ==================== -->
+        <div id="page-dashboard" class="page-content active">
+            <div class="page-header">
+                <div class="breadcrumb">
+                    <a href="#" onclick="showPage('dashboard')"><i class="fas fa-home"></i> 首页</a>
+                    <i class="fas fa-chevron-right"></i>
+                    <span>控制台</span>
+                </div>
+                <h1 class="page-title">欢迎使用综合后台管理系统</h1>
+            </div>
+
+            <div class="quick-actions">
+                <div class="quick-action-item" onclick="openModal('modal-policy')">
+                    <div class="quick-action-icon" style="background:rgba(30,136,229,0.1);color:var(--primary-color);"><i class="fas fa-plus"></i></div>
+                    <span>新增保单</span>
+                </div>
+                <div class="quick-action-item" onclick="showPage('post-inspection')">
+                    <div class="quick-action-icon" style="background:rgba(76,175,80,0.1);color:var(--success-color);"><i class="fas fa-clipboard-check"></i></div>
+                    <span>保后检查</span>
+                </div>
+                <div class="quick-action-item" onclick="showPage('front-products')">
+                    <div class="quick-action-icon" style="background:rgba(255,111,0,0.1);color:var(--secondary-color);"><i class="fas fa-box-open"></i></div>
+                    <span>产品管理</span>
+                </div>
+                <div class="quick-action-item" onclick="showPage('front-news')">
+                    <div class="quick-action-icon" style="background:rgba(156,39,176,0.1);color:#9c27b0;"><i class="fas fa-newspaper"></i></div>
+                    <span>新闻管理</span>
+                </div>
+            </div>
+
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon blue"><i class="fas fa-file-contract"></i></div>
+                    <div class="stat-info"><h3>1,258</h3><p>总保单数</p></div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon orange"><i class="fas fa-clock"></i></div>
+                    <div class="stat-info"><h3>86</h3><p>待处理任务</p></div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon green"><i class="fas fa-check-circle"></i></div>
+                    <div class="stat-info"><h3>1,102</h3><p>正常保单</p></div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon red"><i class="fas fa-exclamation-circle"></i></div>
+                    <div class="stat-info"><h3>12</h3><p>风险预警</p></div>
+                </div>
+            </div>
+
+            <div class="content-grid">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">待处理保单</h3>
+                        <div class="card-actions">
+                            <button class="btn btn-outline btn-sm"><i class="fas fa-filter"></i> 筛选</button>
+                            <button class="btn btn-primary btn-sm" onclick="openModal('modal-policy')"><i class="fas fa-plus"></i> 新增</button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>保单号</th>
+                                    <th>客户名称</th>
+                                    <th>保险类型</th>
+                                    <th>保额</th>
+                                    <th>状态</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>BH2024001</td>
+                                    <td>青岛鑫光正钢结构有限公司</td>
+                                    <td>财产保险</td>
+                                    <td>500万</td>
+                                    <td><span class="status-badge status-warning">待审核</span></td>
+                                    <td>
+                                        <div class="action-btns">
+                                            <button class="action-btn view" title="查看"><i class="fas fa-eye"></i></button>
+                                            <button class="action-btn edit" title="编辑"><i class="fas fa-edit"></i></button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>BH2024002</td>
+                                    <td>山东钢铁集团有限公司</td>
+                                    <td>责任保险</td>
+                                    <td>800万</td>
+                                    <td><span class="status-badge status-info">检查中</span></td>
+                                    <td>
+                                        <div class="action-btns">
+                                            <button class="action-btn view" title="查看"><i class="fas fa-eye"></i></button>
+                                            <button class="action-btn edit" title="编辑"><i class="fas fa-edit"></i></button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>BH2024003</td>
+                                    <td>中国建筑股份有限公司</td>
+                                    <td>工程保险</td>
+                                    <td>1200万</td>
+                                    <td><span class="status-badge status-success">正常</span></td>
+                                    <td>
+                                        <div class="action-btns">
+                                            <button class="action-btn view" title="查看"><i class="fas fa-eye"></i></button>
+                                            <button class="action-btn edit" title="编辑"><i class="fas fa-edit"></i></button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>BH2024004</td>
+                                    <td>上海宝钢集团</td>
+                                    <td>财产保险</td>
+                                    <td>2000万</td>
+                                    <td><span class="status-badge status-danger">预警</span></td>
+                                    <td>
+                                        <div class="action-btns">
+                                            <button class="action-btn view" title="查看"><i class="fas fa-eye"></i></button>
+                                            <button class="action-btn edit" title="编辑"><i class="fas fa-edit"></i></button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">待办任务</h3>
+                        <div class="card-actions">
+                            <button class="btn btn-outline btn-sm"><i class="fas fa-ellipsis-h"></i></button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <ul class="task-list">
+                            <li class="task-item">
+                                <div class="task-checkbox checked" onclick="toggleTask(this)"><i class="fas fa-check"></i></div>
+                                <div class="task-content">
+                                    <div class="task-title">完成青岛鑫光正钢结构保单审核</div>
+                                    <div class="task-meta">截止: 今天 17:00</div>
+                                </div>
+                                <span class="task-priority priority-high">高</span>
+                            </li>
+                            <li class="task-item">
+                                <div class="task-checkbox" onclick="toggleTask(this)"></div>
+                                <div class="task-content">
+                                    <div class="task-title">上海宝钢集团风险现场检查</div>
+                                    <div class="task-meta">截止: 明天 14:00</div>
+                                </div>
+                                <span class="task-priority priority-high">高</span>
+                            </li>
+                            <li class="task-item">
+                                <div class="task-checkbox" onclick="toggleTask(this)"></div>
+                                <div class="task-content">
+                                    <div class="task-title">月度保后检查报告汇总</div>
+                                    <div class="task-meta">截止: 本周五</div>
+                                </div>
+                                <span class="task-priority priority-medium">中</span>
+                            </li>
+                            <li class="task-item">
+                                <div class="task-checkbox" onclick="toggleTask(this)"></div>
+                                <div class="task-content">
+                                    <div class="task-title">更新客户信用评估数据</div>
+                                    <div class="task-meta">截止: 下周三</div>
+                                </div>
+                                <span class="task-priority priority-low">低</span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="content-grid">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">业务趋势</h3>
+                        <div class="card-actions">
+                            <button class="btn btn-outline btn-sm">本周</button>
+                            <button class="btn btn-primary btn-sm">本月</button>
+                            <button class="btn btn-outline btn-sm">本年</button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-container">
+                            <div style="text-align:center;">
+                                <i class="fas fa-chart-line" style="font-size:48px;color:var(--primary-color);margin-bottom:10px;"></i>
+                                <p>业务趋势图表区域</p>
+                                <p style="font-size:12px;">（可集成 ECharts 等图表库）</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">最新通知</h3>
+                        <div class="card-actions">
+                            <button class="btn btn-outline btn-sm">查看全部</button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <ul class="notification-list">
+                            <li class="notification-item">
+                                <div class="notification-icon" style="background:rgba(30,136,229,0.1);color:var(--primary-color);"><i class="fas fa-info"></i></div>
+                                <div class="notification-content">
+                                    <div class="notification-title">系统维护通知</div>
+                                    <div class="notification-text">系统将于本周日凌晨2:00-4:00进行维护升级</div>
+                                    <div class="notification-time">10分钟前</div>
+                                </div>
+                            </li>
+                            <li class="notification-item">
+                                <div class="notification-icon" style="background:rgba(244,67,54,0.1);color:var(--danger-color);"><i class="fas fa-exclamation"></i></div>
+                                <div class="notification-content">
+                                    <div class="notification-title">风险预警提醒</div>
+                                    <div class="notification-text">上海宝钢集团保单触发风险预警，请及时处理</div>
+                                    <div class="notification-time">30分钟前</div>
+                                </div>
+                            </li>
+                            <li class="notification-item">
+                                <div class="notification-icon" style="background:rgba(76,175,80,0.1);color:var(--success-color);"><i class="fas fa-check"></i></div>
+                                <div class="notification-content">
+                                    <div class="notification-title">保单审核通过</div>
+                                    <div class="notification-text">山东钢铁集团保单审核已通过</div>
+                                    <div class="notification-time">1小时前</div>
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== 保后业务页面（占位） ==================== -->
+        <div id="page-policy-list" class="page-content">
+            <div class="page-header">
+                <div class="breadcrumb">
+                    <a href="#" onclick="showPage('dashboard')"><i class="fas fa-home"></i> 首页</a>
+                    <i class="fas fa-chevron-right"></i><span>保单管理</span>
+                    <i class="fas fa-chevron-right"></i><span>保单列表</span>
+                </div>
+                <h1 class="page-title">保单列表</h1>
+            </div>
+            <div class="card"><div class="card-body"><div class="empty-state"><i class="fas fa-file-contract"></i><h3>保单列表页面</h3><p>这里将展示完整的保单列表功能</p></div></div></div>
+        </div>
+        <div id="page-policy-add" class="page-content">
+            <div class="page-header"><div class="breadcrumb"><a href="#" onclick="showPage('dashboard')"><i class="fas fa-home"></i> 首页</a><i class="fas fa-chevron-right"></i><span>保单管理</span><i class="fas fa-chevron-right"></i><span>新增保单</span></div><h1 class="page-title">新增保单</h1></div>
+            <div class="card"><div class="card-body"><div class="empty-state"><i class="fas fa-plus-circle"></i><h3>新增保单页面</h3><p>这里将展示新增保单表单</p></div></div></div>
+        </div>
+        <div id="page-policy-review" class="page-content">
+            <div class="page-header"><div class="breadcrumb"><a href="#" onclick="showPage('dashboard')"><i class="fas fa-home"></i> 首页</a><i class="fas fa-chevron-right"></i><span>保单管理</span><i class="fas fa-chevron-right"></i><span>保单审核</span></div><h1 class="page-title">保单审核</h1></div>
+            <div class="card"><div class="card-body"><div class="empty-state"><i class="fas fa-clipboard-check"></i><h3>保单审核页面</h3><p>这里将展示保单审核功能</p></div></div></div>
+        </div>
+        <div id="page-customer-list" class="page-content">
+            <div class="page-header"><div class="breadcrumb"><a href="#" onclick="showPage('dashboard')"><i class="fas fa-home"></i> 首页</a><i class="fas fa-chevron-right"></i><span>客户管理</span><i class="fas fa-chevron-right"></i><span>客户列表</span></div><h1 class="page-title">客户列表</h1></div>
+            <div class="card"><div class="card-body"><div class="empty-state"><i class="fas fa-users"></i><h3>客户列表页面</h3><p>这里将展示客户列表功能</p></div></div></div>
+        </div>
+        <div id="page-customer-risk" class="page-content">
+            <div class="page-header"><div class="breadcrumb"><a href="#" onclick="showPage('dashboard')"><i class="fas fa-home"></i> 首页</a><i class="fas fa-chevron-right"></i><span>客户管理</span><i class="fas fa-chevron-right"></i><span>风险评估</span></div><h1 class="page-title">风险评估</h1></div>
+            <div class="card"><div class="card-body"><div class="empty-state"><i class="fas fa-exclamation-triangle"></i><h3>风险评估页面</h3><p>这里将展示风险评估功能</p></div></div></div>
+        </div>
+        <div id="page-customer-credit" class="page-content">
+            <div class="page-header"><div class="breadcrumb"><a href="#" onclick="showPage('dashboard')"><i class="fas fa-home"></i> 首页</a><i class="fas fa-chevron-right"></i><span>客户管理</span><i class="fas fa-chevron-right"></i><span>信用管理</span></div><h1 class="page-title">信用管理</h1></div>
+            <div class="card"><div class="card-body"><div class="empty-state"><i class="fas fa-star"></i><h3>信用管理页面</h3><p>这里将展示信用管理功能</p></div></div></div>
+        </div>
+        <div id="page-post-inspection" class="page-content">
+            <div class="page-header"><div class="breadcrumb"><a href="#" onclick="showPage('dashboard')"><i class="fas fa-home"></i> 首页</a><i class="fas fa-chevron-right"></i><span>保后管理</span><i class="fas fa-chevron-right"></i><span>保后检查</span></div><h1 class="page-title">保后检查</h1></div>
+            <div class="card"><div class="card-body"><div class="empty-state"><i class="fas fa-search-location"></i><h3>保后检查页面</h3><p>这里将展示保后检查功能</p></div></div></div>
+        </div>
+        <div id="page-post-monitoring" class="page-content">
+            <div class="page-header"><div class="breadcrumb"><a href="#" onclick="showPage('dashboard')"><i class="fas fa-home"></i> 首页</a><i class="fas fa-chevron-right"></i><span>保后管理</span><i class="fas fa-chevron-right"></i><span>风险监控</span></div><h1 class="page-title">风险监控</h1></div>
+            <div class="card"><div class="card-body"><div class="empty-state"><i class="fas fa-desktop"></i><h3>风险监控页面</h3><p>这里将展示风险监控功能</p></div></div></div>
+        </div>
+        <div id="page-post-warning" class="page-content">
+            <div class="page-header"><div class="breadcrumb"><a href="#" onclick="showPage('dashboard')"><i class="fas fa-home"></i> 首页</a><i class="fas fa-chevron-right"></i><span>保后管理</span><i class="fas fa-chevron-right"></i><span>预警管理</span></div><h1 class="page-title">预警管理</h1></div>
+            <div class="card"><div class="card-body"><div class="empty-state"><i class="fas fa-bell"></i><h3>预警管理页面</h3><p>这里将展示预警管理功能</p></div></div></div>
+        </div>
+        <div id="page-report-business" class="page-content">
+            <div class="page-header"><div class="breadcrumb"><a href="#" onclick="showPage('dashboard')"><i class="fas fa-home"></i> 首页</a><i class="fas fa-chevron-right"></i><span>数据统计</span><i class="fas fa-chevron-right"></i><span>业务报表</span></div><h1 class="page-title">业务报表</h1></div>
+            <div class="card"><div class="card-body"><div class="empty-state"><i class="fas fa-chart-bar"></i><h3>业务报表页面</h3><p>这里将展示业务报表功能</p></div></div></div>
+        </div>
+        <div id="page-report-risk" class="page-content">
+            <div class="page-header"><div class="breadcrumb"><a href="#" onclick="showPage('dashboard')"><i class="fas fa-home"></i> 首页</a><i class="fas fa-chevron-right"></i><span>数据统计</span><i class="fas fa-chevron-right"></i><span>风险报表</span></div><h1 class="page-title">风险报表</h1></div>
+            <div class="card"><div class="card-body"><div class="empty-state"><i class="fas fa-chart-area"></i><h3>风险报表页面</h3><p>这里将展示风险报表功能</p></div></div></div>
+        </div>
+        <div id="page-report-finance" class="page-content">
+            <div class="page-header"><div class="breadcrumb"><a href="#" onclick="showPage('dashboard')"><i class="fas fa-home"></i> 首页</a><i class="fas fa-chevron-right"></i><span>数据统计</span><i class="fas fa-chevron-right"></i><span>财务报表</span></div><h1 class="page-title">财务报表</h1></div>
+            <div class="card"><div class="card-body"><div class="empty-state"><i class="fas fa-coins"></i><h3>财务报表页面</h3><p>这里将展示财务报表功能</p></div></div></div>
+        </div>
+
+        <!-- ==================== 系统设置页面（占位） ==================== -->
+        <div id="page-system-user" class="page-content">
+            <div class="page-header"><div class="breadcrumb"><a href="#" onclick="showPage('dashboard')"><i class="fas fa-home"></i> 首页</a><i class="fas fa-chevron-right"></i><span>系统设置</span><i class="fas fa-chevron-right"></i><span>用户管理</span></div><h1 class="page-title">用户管理</h1></div>
+            <div class="card"><div class="card-body"><div class="empty-state"><i class="fas fa-users-cog"></i><h3>用户管理页面</h3><p>这里将展示用户管理功能</p></div></div></div>
+        </div>
+        <div id="page-system-role" class="page-content">
+            <div class="page-header"><div class="breadcrumb"><a href="#" onclick="showPage('dashboard')"><i class="fas fa-home"></i> 首页</a><i class="fas fa-chevron-right"></i><span>系统设置</span><i class="fas fa-chevron-right"></i><span>权限管理</span></div><h1 class="page-title">权限管理</h1></div>
+            <div class="card"><div class="card-body"><div class="empty-state"><i class="fas fa-user-lock"></i><h3>权限管理页面</h3><p>这里将展示权限管理功能</p></div></div></div>
+        </div>
+        <div id="page-system-log" class="page-content">
+            <div class="page-header"><div class="breadcrumb"><a href="#" onclick="showPage('dashboard')"><i class="fas fa-home"></i> 首页</a><i class="fas fa-chevron-right"></i><span>系统设置</span><i class="fas fa-chevron-right"></i><span>操作日志</span></div><h1 class="page-title">操作日志</h1></div>
+            <div class="card"><div class="card-body"><div class="empty-state"><i class="fas fa-history"></i><h3>操作日志页面</h3><p>这里将展示操作日志功能</p></div></div></div>
+        </div>
+        <div id="page-system-setting" class="page-content">
+            <div class="page-header"><div class="breadcrumb"><a href="#" onclick="showPage('dashboard')"><i class="fas fa-home"></i> 首页</a><i class="fas fa-chevron-right"></i><span>系统设置</span><i class="fas fa-chevron-right"></i><span>系统设置</span></div><h1 class="page-title">系统设置</h1></div>
+            <div class="card"><div class="card-body"><div class="empty-state"><i class="fas fa-cog"></i><h3>系统设置页面</h3><p>这里将展示系统设置功能</p></div></div></div>
+        </div>
+
+        <!-- ==================== 公司信息管理 ==================== -->
+        <div id="page-front-company" class="page-content">
+            <div class="page-header">
+                <div class="breadcrumb">
+                    <a href="#" onclick="showPage('dashboard')"><i class="fas fa-home"></i> 首页</a>
+                    <i class="fas fa-chevron-right"></i><span>前端管理</span>
+                    <i class="fas fa-chevron-right"></i><span>公司信息管理</span>
+                </div>
+                <h1 class="page-title">公司信息管理</h1>
+            </div>
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title"><i class="fas fa-building" style="margin-right:8px;color:var(--primary-color);"></i>编辑公司信息</h3>
+                </div>
+                <div class="card-body">
+                    <form id="companyForm" onsubmit="saveCompany(event)">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label">公司名称<span class="required">*</span></label>
+                                <input type="text" class="form-control" id="companyName" placeholder="请输入公司名称" required>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">公司简称</label>
+                                <input type="text" class="form-control" id="companyShortName" placeholder="请输入公司简称">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">公司描述</label>
+                            <textarea class="form-control" id="companyDesc" rows="4" placeholder="请输入公司描述"></textarea>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label">联系电话</label>
+                                <input type="text" class="form-control" id="companyPhone" placeholder="请输入联系电话">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">联系邮箱</label>
+                                <input type="email" class="form-control" id="companyEmail" placeholder="请输入联系邮箱">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label">公司地址</label>
+                                <input type="text" class="form-control" id="companyAddress" placeholder="请输入公司地址">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">公司网站</label>
+                                <input type="text" class="form-control" id="companyWebsite" placeholder="请输入公司网站">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label">Logo URL</label>
+                                <input type="text" class="form-control" id="companyLogo" placeholder="请输入Logo图片地址">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">备案号</label>
+                                <input type="text" class="form-control" id="companyIcp" placeholder="请输入ICP备案号">
+                            </div>
+                        </div>
+                        <div style="margin-top:10px;">
+                            <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> 保存公司信息</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== 产品管理 ==================== -->
+        <div id="page-front-products" class="page-content">
+            <div class="page-header">
+                <div class="breadcrumb">
+                    <a href="#" onclick="showPage('dashboard')"><i class="fas fa-home"></i> 首页</a>
+                    <i class="fas fa-chevron-right"></i><span>前端管理</span>
+                    <i class="fas fa-chevron-right"></i><span>产品管理</span>
+                </div>
+                <h1 class="page-title">产品管理</h1>
+            </div>
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title"><i class="fas fa-box-open" style="margin-right:8px;color:var(--primary-color);"></i>产品列表</h3>
+                    <div class="card-actions">
+                        <button class="btn btn-primary btn-sm" onclick="openProductModal()"><i class="fas fa-plus"></i> 新增产品</button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="toolbar">
+                        <div class="search-box">
+                            <i class="fas fa-search"></i>
+                            <input type="text" id="productSearch" placeholder="搜索产品名称..." oninput="renderProducts()">
+                        </div>
+                    </div>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th style="width:50px;">序号</th>
+                                <th>产品名称</th>
+                                <th>产品分类</th>
+                                <th>产品描述</th>
+                                <th>排序</th>
+                                <th>状态</th>
+                                <th style="width:120px;">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="productTableBody">
+                        </tbody>
+                    </table>
+                    <div class="pagination" id="productPagination"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== 项目管理 ==================== -->
+        <div id="page-front-projects" class="page-content">
+            <div class="page-header">
+                <div class="breadcrumb">
+                    <a href="#" onclick="showPage('dashboard')"><i class="fas fa-home"></i> 首页</a>
+                    <i class="fas fa-chevron-right"></i><span>前端管理</span>
+                    <i class="fas fa-chevron-right"></i><span>项目管理</span>
+                </div>
+                <h1 class="page-title">项目管理</h1>
+            </div>
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title"><i class="fas fa-project-diagram" style="margin-right:8px;color:var(--primary-color);"></i>项目列表</h3>
+                    <div class="card-actions">
+                        <button class="btn btn-primary btn-sm" onclick="openProjectModal()"><i class="fas fa-plus"></i> 新增项目</button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="toolbar">
+                        <div class="search-box">
+                            <i class="fas fa-search"></i>
+                            <input type="text" id="projectSearch" placeholder="搜索项目名称..." oninput="renderProjects()">
+                        </div>
+                    </div>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th style="width:50px;">序号</th>
+                                <th>项目名称</th>
+                                <th>项目类型</th>
+                                <th>项目描述</th>
+                                <th>排序</th>
+                                <th>状态</th>
+                                <th style="width:120px;">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="projectTableBody">
+                        </tbody>
+                    </table>
+                    <div class="pagination" id="projectPagination"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== 新闻管理 ==================== -->
+        <div id="page-front-news" class="page-content">
+            <div class="page-header">
+                <div class="breadcrumb">
+                    <a href="#" onclick="showPage('dashboard')"><i class="fas fa-home"></i> 首页</a>
+                    <i class="fas fa-chevron-right"></i><span>前端管理</span>
+                    <i class="fas fa-chevron-right"></i><span>新闻管理</span>
+                </div>
+                <h1 class="page-title">新闻管理</h1>
+            </div>
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title"><i class="fas fa-newspaper" style="margin-right:8px;color:var(--primary-color);"></i>新闻列表</h3>
+                    <div class="card-actions">
+                        <button class="btn btn-primary btn-sm" onclick="openNewsModal()"><i class="fas fa-plus"></i> 新增新闻</button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="toolbar">
+                        <div class="search-box">
+                            <i class="fas fa-search"></i>
+                            <input type="text" id="newsSearch" placeholder="搜索新闻标题..." oninput="renderNews()">
+                        </div>
+                    </div>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th style="width:50px;">序号</th>
+                                <th>新闻标题</th>
+                                <th>新闻分类</th>
+                                <th>发布日期</th>
+                                <th>排序</th>
+                                <th>状态</th>
+                                <th style="width:120px;">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="newsTableBody">
+                        </tbody>
+                    </table>
+                    <div class="pagination" id="newsPagination"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== 轮播图管理 ==================== -->
+        <div id="page-front-banners" class="page-content">
+            <div class="page-header">
+                <div class="breadcrumb">
+                    <a href="#" onclick="showPage('dashboard')"><i class="fas fa-home"></i> 首页</a>
+                    <i class="fas fa-chevron-right"></i><span>前端管理</span>
+                    <i class="fas fa-chevron-right"></i><span>轮播图管理</span>
+                </div>
+                <h1 class="page-title">轮播图管理</h1>
+            </div>
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title"><i class="fas fa-images" style="margin-right:8px;color:var(--primary-color);"></i>轮播图列表</h3>
+                    <div class="card-actions">
+                        <button class="btn btn-primary btn-sm" onclick="openBannerModal()"><i class="fas fa-plus"></i> 新增轮播图</button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div id="bannerListContainer" class="banner-list"></div>
+                    <div style="margin-top:20px;">
+                        <button class="btn btn-primary" onclick="saveBanners()"><i class="fas fa-save"></i> 保存轮播图设置</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== 统计数据管理 ==================== -->
+        <div id="page-front-stats" class="page-content">
+            <div class="page-header">
+                <div class="breadcrumb">
+                    <a href="#" onclick="showPage('dashboard')"><i class="fas fa-home"></i> 首页</a>
+                    <i class="fas fa-chevron-right"></i><span>前端管理</span>
+                    <i class="fas fa-chevron-right"></i><span>统计数据管理</span>
+                </div>
+                <h1 class="page-title">统计数据管理</h1>
+            </div>
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title"><i class="fas fa-sort-numeric-up" style="margin-right:8px;color:var(--primary-color);"></i>首页统计数据</h3>
+                </div>
+                <div class="card-body">
+                    <p style="color:var(--text-light);margin-bottom:20px;font-size:13px;">修改以下数据将实时更新前台首页展示的数字统计信息。</p>
+                    <div id="statsEditContainer" class="stats-edit-grid"></div>
+                    <div style="margin-top:24px;">
+                        <button class="btn btn-primary" onclick="saveStats()"><i class="fas fa-save"></i> 保存统计数据</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- 页脚 -->
+    <footer class="footer">
+        <p>&copy; 2024 综合后台管理系统 | 技术支持：IT部门</p>
+    </footer>
+
+    <!-- ==================== 新增保单模态框 ==================== -->
+    <div class="modal" id="modal-policy">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">新增保单</h3>
+                <button class="modal-close" onclick="closeModal('modal-policy')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">保单号</label>
+                        <input type="text" class="form-control" placeholder="请输入保单号">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">客户名称</label>
+                        <input type="text" class="form-control" placeholder="请输入客户名称">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">保险类型</label>
+                        <select class="form-control">
+                            <option>财产保险</option><option>责任保险</option><option>工程保险</option><option>信用保险</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">保险金额</label>
+                        <input type="text" class="form-control" placeholder="请输入保险金额">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">开始日期</label>
+                        <input type="date" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">结束日期</label>
+                        <input type="date" class="form-control">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">备注说明</label>
+                    <textarea class="form-control" rows="3" placeholder="请输入备注说明"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline" onclick="closeModal('modal-policy')">取消</button>
+                <button class="btn btn-primary" onclick="closeModal('modal-policy');showToast('保单已保存','success')">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 产品编辑模态框 ==================== -->
+    <div class="modal" id="modal-product">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title" id="productModalTitle">新增产品</h3>
+                <button class="modal-close" onclick="closeModal('modal-product')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="productEditId">
+                <div class="form-group">
+                    <label class="form-label">产品名称<span class="required">*</span></label>
+                    <input type="text" class="form-control" id="productName" placeholder="请输入产品名称">
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">产品分类</label>
+                        <input type="text" class="form-control" id="productCategory" placeholder="请输入产品分类">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">排序</label>
+                        <input type="number" class="form-control" id="productSort" placeholder="0" value="0">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">产品描述</label>
+                    <textarea class="form-control" id="productDesc" rows="3" placeholder="请输入产品描述"></textarea>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">产品图标</label>
+                        <input type="text" class="form-control" id="productIcon" placeholder="Font Awesome 图标类名，如 fas fa-shield-alt">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">产品图片</label>
+                        <input type="text" class="form-control" id="productImage" placeholder="请输入图片URL">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">状态</label>
+                    <select class="form-control" id="productStatus">
+                        <option value="active">启用</option>
+                        <option value="inactive">禁用</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline" onclick="closeModal('modal-product')">取消</button>
+                <button class="btn btn-primary" onclick="saveProduct()"><i class="fas fa-save"></i> 保存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 项目编辑模态框 ==================== -->
+    <div class="modal" id="modal-project">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title" id="projectModalTitle">新增项目</h3>
+                <button class="modal-close" onclick="closeModal('modal-project')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="projectEditId">
+                <div class="form-group">
+                    <label class="form-label">项目名称<span class="required">*</span></label>
+                    <input type="text" class="form-control" id="projectName" placeholder="请输入项目名称">
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">项目类型</label>
+                        <input type="text" class="form-control" id="projectCategory" placeholder="请输入项目类型">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">排序</label>
+                        <input type="number" class="form-control" id="projectSort" placeholder="0" value="0">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">项目描述</label>
+                    <textarea class="form-control" id="projectDesc" rows="3" placeholder="请输入项目描述"></textarea>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">项目图片</label>
+                        <input type="text" class="form-control" id="projectImage" placeholder="请输入项目图片URL">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">项目链接</label>
+                        <input type="text" class="form-control" id="projectLink" placeholder="请输入项目链接">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">状态</label>
+                    <select class="form-control" id="projectStatus">
+                        <option value="active">启用</option>
+                        <option value="inactive">禁用</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline" onclick="closeModal('modal-project')">取消</button>
+                <button class="btn btn-primary" onclick="saveProject()"><i class="fas fa-save"></i> 保存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 新闻编辑模态框 ==================== -->
+    <div class="modal" id="modal-news">
+        <div class="modal-content wide">
+            <div class="modal-header">
+                <h3 class="modal-title" id="newsModalTitle">新增新闻</h3>
+                <button class="modal-close" onclick="closeModal('modal-news')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="newsEditId">
+                <div class="form-group">
+                    <label class="form-label">新闻标题<span class="required">*</span></label>
+                    <input type="text" class="form-control" id="newsTitle" placeholder="请输入新闻标题">
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">新闻分类</label>
+                        <input type="text" class="form-control" id="newsCategory" placeholder="请输入新闻分类">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">发布日期</label>
+                        <input type="date" class="form-control" id="newsDate">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">排序</label>
+                        <input type="number" class="form-control" id="newsSort" placeholder="0" value="0">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">来源</label>
+                        <input type="text" class="form-control" id="newsSource" placeholder="请输入新闻来源">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">新闻摘要</label>
+                    <textarea class="form-control" id="newsSummary" rows="2" placeholder="请输入新闻摘要"></textarea>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">新闻内容</label>
+                    <textarea class="form-control" id="newsContent" rows="6" placeholder="请输入新闻正文内容"></textarea>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">封面图片</label>
+                        <input type="text" class="form-control" id="newsImage" placeholder="请输入封面图片URL">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">状态</label>
+                        <select class="form-control" id="newsStatus">
+                            <option value="active">启用</option>
+                            <option value="inactive">禁用</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline" onclick="closeModal('modal-news')">取消</button>
+                <button class="btn btn-primary" onclick="saveNews()"><i class="fas fa-save"></i> 保存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 轮播图编辑模态框 ==================== -->
+    <div class="modal" id="modal-banner">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title" id="bannerModalTitle">新增轮播图</h3>
+                <button class="modal-close" onclick="closeModal('modal-banner')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="bannerEditIndex" value="-1">
+                <div class="form-group">
+                    <label class="form-label">轮播图标题<span class="required">*</span></label>
+                    <input type="text" class="form-control" id="bannerTitle" placeholder="请输入轮播图标题">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">副标题</label>
+                    <input type="text" class="form-control" id="bannerSubtitle" placeholder="请输入副标题">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">图片地址<span class="required">*</span></label>
+                    <input type="text" class="form-control" id="bannerImage" placeholder="请输入轮播图图片URL">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">链接地址</label>
+                    <input type="text" class="form-control" id="bannerLink" placeholder="请输入点击后跳转的链接">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline" onclick="closeModal('modal-banner')">取消</button>
+                <button class="btn btn-primary" onclick="saveBannerItem()"><i class="fas fa-save"></i> 保存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 确认删除模态框 ==================== -->
+    <div class="modal" id="modal-confirm">
+        <div class="modal-content" style="max-width:420px;">
+            <div class="confirm-content">
+                <div class="confirm-icon danger">
+                    <i class="fas fa-exclamation-triangle"></i>
+                </div>
+                <h3 class="confirm-title" id="confirmTitle">确认删除</h3>
+                <p class="confirm-text" id="confirmText">确定要删除该条数据吗？此操作不可恢复。</p>
+            </div>
+            <div class="modal-footer" style="justify-content:center;">
+                <button class="btn btn-outline" onclick="closeModal('modal-confirm')">取消</button>
+                <button class="btn btn-danger" id="confirmBtn" onclick="confirmDelete()"><i class="fas fa-trash"></i> 确认删除</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 引入 data.js -->
+    <script src="data.js"></script>
+
+    <script>
+        /* ============================================================
+         *  全局状态
+         * ============================================================ */
+        var currentDeleteType = '';   // 'product' | 'project' | 'news' | 'banner'
+        var currentDeleteId = null;
+        var currentDeleteIndex = null;
+        var PAGE_SIZE = 10;
+
+        /* ============================================================
+         *  Toast 通知
+         * ============================================================ */
+        function showToast(message, type) {
+            type = type || 'info';
+            var container = document.getElementById('toastContainer');
+            var icons = { success: 'fa-check-circle', error: 'fa-times-circle', warning: 'fa-exclamation-circle', info: 'fa-info-circle' };
+            var toast = document.createElement('div');
+            toast.className = 'toast ' + type;
+            toast.innerHTML = '<i class="fas ' + (icons[type] || icons.info) + '"></i><span>' + message + '</span>';
+            container.appendChild(toast);
+            setTimeout(function() {
+                toast.classList.add('removing');
+                setTimeout(function() { toast.remove(); }, 300);
+            }, 3000);
+        }
+
+        /* ============================================================
+         *  侧边栏菜单
+         * ============================================================ */
+        function toggleSubmenu(element) {
+            element.classList.toggle('expanded');
+            var submenu = element.nextElementSibling;
+            if (submenu && submenu.classList.contains('submenu')) {
+                submenu.classList.toggle('show');
+            }
+        }
+
+        function showPage(pageId, clickedEl) {
+            // 隐藏所有页面
+            document.querySelectorAll('.page-content').forEach(function(p) { p.classList.remove('active'); });
+            // 显示目标页面
+            var target = document.getElementById('page-' + pageId);
+            if (target) target.classList.add('active');
+
+            // 更新菜单高亮
+            document.querySelectorAll('.menu-item').forEach(function(m) { m.classList.remove('active'); });
+            document.querySelectorAll('.submenu-item').forEach(function(s) { s.classList.remove('active'); });
+
+            if (clickedEl) {
+                if (clickedEl.classList.contains('submenu-item')) {
+                    clickedEl.classList.add('active');
+                    // 同时高亮父级 menu-item
+                    var parentMenu = clickedEl.closest('.submenu').previousElementSibling;
+                    if (parentMenu) parentMenu.classList.add('active');
+                } else if (clickedEl.classList.contains('menu-item')) {
+                    clickedEl.classList.add('active');
+                }
+            }
+
+            // 加载前端管理页面数据
+            if (pageId === 'front-company') loadCompany();
+            if (pageId === 'front-products') renderProducts();
+            if (pageId === 'front-projects') renderProjects();
+            if (pageId === 'front-news') renderNews();
+            if (pageId === 'front-banners') renderBanners();
+            if (pageId === 'front-stats') renderStatsEdit();
+        }
+
+        /* ============================================================
+         *  模态框
+         * ============================================================ */
+        function openModal(id) { document.getElementById(id).classList.add('show'); }
+        function closeModal(id) { document.getElementById(id).classList.remove('show'); }
+
+        // 点击遮罩关闭
+        document.addEventListener('click', function(e) {
+            if (e.target.classList.contains('modal')) {
+                e.target.classList.remove('show');
+            }
+        });
+
+        /* ============================================================
+         *  任务复选框
+         * ============================================================ */
+        function toggleTask(el) {
+            el.classList.toggle('checked');
+            if (el.classList.contains('checked')) {
+                el.innerHTML = '<i class="fas fa-check"></i>';
+            } else {
+                el.innerHTML = '';
+            }
+        }
+
+        /* ============================================================
+         *  确认删除
+         * ============================================================ */
+        function showDeleteConfirm(type, id, index, text) {
+            currentDeleteType = type;
+            currentDeleteId = id;
+            currentDeleteIndex = index;
+            document.getElementById('confirmText').textContent = text || '确定要删除该条数据吗？此操作不可恢复。';
+            openModal('modal-confirm');
+        }
+
+        function confirmDelete() {
+            if (currentDeleteType === 'product' && currentDeleteId) {
+                dataManager.deleteProduct(currentDeleteId);
+                showToast('产品已删除', 'success');
+                renderProducts();
+            } else if (currentDeleteType === 'project' && currentDeleteId) {
+                dataManager.deleteProject(currentDeleteId);
+                showToast('项目已删除', 'success');
+                renderProjects();
+            } else if (currentDeleteType === 'news' && currentDeleteId) {
+                dataManager.deleteNews(currentDeleteId);
+                showToast('新闻已删除', 'success');
+                renderNews();
+            } else if (currentDeleteType === 'banner' && currentDeleteIndex !== null) {
+                var banners = dataManager.getBanners();
+                banners.splice(currentDeleteIndex, 1);
+                dataManager.updateBanners(banners);
+                showToast('轮播图已删除', 'success');
+                renderBanners();
+            }
+            closeModal('modal-confirm');
+            currentDeleteType = '';
+            currentDeleteId = null;
+            currentDeleteIndex = null;
+        }
+
+        /* ============================================================
+         *  分页工具
+         * ============================================================ */
+        function paginate(data, page, size) {
+            var total = data.length;
+            var totalPages = Math.max(1, Math.ceil(total / size));
+            if (page < 1) page = 1;
+            if (page > totalPages) page = totalPages;
+            var start = (page - 1) * size;
+            var items = data.slice(start, start + size);
+            return { items: items, page: page, totalPages: totalPages, total: total };
+        }
+
+        function renderPaginationHtml(containerId, page, totalPages, total, onPageClick) {
+            var container = document.getElementById(containerId);
+            if (!container) return;
+            var html = '<span class="pagination-info">共 ' + total + ' 条，第 ' + page + '/' + totalPages + ' 页</span>';
+            html += '<button class="page-btn" ' + (page <= 1 ? 'disabled' : '') + ' onclick="' + onPageClick + '(' + (page - 1) + ')"><i class="fas fa-chevron-left"></i></button>';
+            var startP = Math.max(1, page - 2);
+            var endP = Math.min(totalPages, page + 2);
+            for (var i = startP; i <= endP; i++) {
+                html += '<button class="page-btn' + (i === page ? ' active' : '') + '" onclick="' + onPageClick + '(' + i + ')">' + i + '</button>';
+            }
+            html += '<button class="page-btn" ' + (page >= totalPages ? 'disabled' : '') + ' onclick="' + onPageClick + '(' + (page + 1) + ')"><i class="fas fa-chevron-right"></i></button>';
+            container.innerHTML = html;
+        }
+
+        /* ============================================================
+         *  公司信息管理
+         * ============================================================ */
+        function loadCompany() {
+            try {
+                var data = dataManager.getCompany();
+                if (data) {
+                    document.getElementById('companyName').value = data.name || '';
+                    document.getElementById('companyShortName').value = data.shortName || '';
+                    document.getElementById('companyDesc').value = data.description || '';
+                    document.getElementById('companyPhone').value = data.phone || '';
+                    document.getElementById('companyEmail').value = data.email || '';
+                    document.getElementById('companyAddress').value = data.address || '';
+                    document.getElementById('companyWebsite').value = data.website || '';
+                    document.getElementById('companyLogo').value = data.logo || '';
+                    document.getElementById('companyIcp').value = data.icp || '';
+                }
+            } catch(e) {
+                console.warn('加载公司信息失败:', e);
+            }
+        }
+
+        function saveCompany(e) {
+            e.preventDefault();
+            try {
+                var data = {
+                    name: document.getElementById('companyName').value,
+                    shortName: document.getElementById('companyShortName').value,
+                    description: document.getElementById('companyDesc').value,
+                    phone: document.getElementById('companyPhone').value,
+                    email: document.getElementById('companyEmail').value,
+                    address: document.getElementById('companyAddress').value,
+                    website: document.getElementById('companyWebsite').value,
+                    logo: document.getElementById('companyLogo').value,
+                    icp: document.getElementById('companyIcp').value
+                };
+                dataManager.updateCompany(data);
+                showToast('公司信息保存成功', 'success');
+            } catch(err) {
+                showToast('保存失败: ' + err.message, 'error');
+            }
+        }
+
+        /* ============================================================
+         *  产品管理
+         * ============================================================ */
+        var productCurrentPage = 1;
+
+        function renderProducts(page) {
+            if (page !== undefined) productCurrentPage = page;
+            try {
+                var all = dataManager.getProducts() || [];
+            } catch(e) { all = []; }
+            var keyword = (document.getElementById('productSearch') || {}).value || '';
+            if (keyword) {
+                var kw = keyword.toLowerCase();
+                all = all.filter(function(p) { return (p.name || '').toLowerCase().indexOf(kw) > -1; });
+            }
+            var result = paginate(all, productCurrentPage, PAGE_SIZE);
+            productCurrentPage = result.page;
+
+            var tbody = document.getElementById('productTableBody');
+            if (!tbody) return;
+            if (result.items.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7"><div class="empty-state"><i class="fas fa-box-open"></i><h3>暂无产品数据</h3><p>点击"新增产品"按钮添加</p></div></td></tr>';
+            } else {
+                var html = '';
+                result.items.forEach(function(p, i) {
+                    html += '<tr>'
+                        + '<td>' + ((result.page - 1) * PAGE_SIZE + i + 1) + '</td>'
+                        + '<td><strong>' + escapeHtml(p.name || '') + '</strong></td>'
+                        + '<td>' + escapeHtml(p.category || '-') + '</td>'
+                        + '<td>' + escapeHtml(truncate(p.description || '-', 40)) + '</td>'
+                        + '<td>' + (p.sort !== undefined ? p.sort : 0) + '</td>'
+                        + '<td><span class="status-badge ' + (p.status === 'active' ? 'status-success' : 'status-danger') + '">' + (p.status === 'active' ? '启用' : '禁用') + '</span></td>'
+                        + '<td><div class="action-btns">'
+                        + '<button class="action-btn edit" title="编辑" onclick="editProduct(\'' + p.id + '\')"><i class="fas fa-edit"></i></button>'
+                        + '<button class="action-btn delete" title="删除" onclick="deleteProduct(\'' + p.id + '\',\'' + escapeHtml(p.name) + '\')"><i class="fas fa-trash"></i></button>'
+                        + '</div></td>'
+                        + '</tr>';
+                });
+                tbody.innerHTML = html;
+            }
+            renderPaginationHtml('productPagination', result.page, result.totalPages, result.total, 'renderProducts');
+        }
+
+        function openProductModal(id) {
+            document.getElementById('productEditId').value = '';
+            document.getElementById('productName').value = '';
+            document.getElementById('productCategory').value = '';
+            document.getElementById('productDesc').value = '';
+            document.getElementById('productIcon').value = '';
+            document.getElementById('productImage').value = '';
+            document.getElementById('productSort').value = 0;
+            document.getElementById('productStatus').value = 'active';
+            document.getElementById('productModalTitle').textContent = '新增产品';
+            openModal('modal-product');
+        }
+
+        function editProduct(id) {
+            try {
+                var products = dataManager.getProducts() || [];
+                var p = products.find(function(item) { return item.id === id; });
+                if (!p) { showToast('未找到该产品', 'error'); return; }
+                document.getElementById('productEditId').value = p.id;
+                document.getElementById('productName').value = p.name || '';
+                document.getElementById('productCategory').value = p.category || '';
+                document.getElementById('productDesc').value = p.description || '';
+                document.getElementById('productIcon').value = p.icon || '';
+                document.getElementById('productImage').value = p.image || '';
+                document.getElementById('productSort').value = p.sort !== undefined ? p.sort : 0;
+                document.getElementById('productStatus').value = p.status || 'active';
+                document.getElementById('productModalTitle').textContent = '编辑产品';
+                openModal('modal-product');
+            } catch(e) { showToast('加载产品数据失败', 'error'); }
+        }
+
+        function saveProduct() {
+            var name = document.getElementById('productName').value.trim();
+            if (!name) { showToast('请输入产品名称', 'warning'); return; }
+            try {
+                var data = {
+                    name: name,
+                    category: document.getElementById('productCategory').value.trim(),
+                    description: document.getElementById('productDesc').value.trim(),
+                    icon: document.getElementById('productIcon').value.trim(),
+                    image: document.getElementById('productImage').value.trim(),
+                    sort: parseInt(document.getElementById('productSort').value) || 0,
+                    status: document.getElementById('productStatus').value
+                };
+                var editId = document.getElementById('productEditId').value;
+                if (editId) {
+                    dataManager.updateProduct(editId, data);
+                    showToast('产品更新成功', 'success');
+                } else {
+                    dataManager.addProduct(data);
+                    showToast('产品添加成功', 'success');
+                }
+                closeModal('modal-product');
+                renderProducts();
+            } catch(e) { showToast('保存失败: ' + e.message, 'error'); }
+        }
+
+        function deleteProduct(id, name) {
+            showDeleteConfirm('product', id, null, '确定要删除产品"' + name + '"吗？此操作不可恢复。');
+        }
+
+        /* ============================================================
+         *  项目管理
+         * ============================================================ */
+        var projectCurrentPage = 1;
+
+        function renderProjects(page) {
+            if (page !== undefined) projectCurrentPage = page;
+            try {
+                var all = dataManager.getProjects() || [];
+            } catch(e) { all = []; }
+            var keyword = (document.getElementById('projectSearch') || {}).value || '';
+            if (keyword) {
+                var kw = keyword.toLowerCase();
+                all = all.filter(function(p) { return (p.name || '').toLowerCase().indexOf(kw) > -1; });
+            }
+            var result = paginate(all, projectCurrentPage, PAGE_SIZE);
+            projectCurrentPage = result.page;
+
+            var tbody = document.getElementById('projectTableBody');
+            if (!tbody) return;
+            if (result.items.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7"><div class="empty-state"><i class="fas fa-project-diagram"></i><h3>暂无项目数据</h3><p>点击"新增项目"按钮添加</p></div></td></tr>';
+            } else {
+                var html = '';
+                result.items.forEach(function(p, i) {
+                    html += '<tr>'
+                        + '<td>' + ((result.page - 1) * PAGE_SIZE + i + 1) + '</td>'
+                        + '<td><strong>' + escapeHtml(p.name || '') + '</strong></td>'
+                        + '<td>' + escapeHtml(p.category || '-') + '</td>'
+                        + '<td>' + escapeHtml(truncate(p.description || '-', 40)) + '</td>'
+                        + '<td>' + (p.sort !== undefined ? p.sort : 0) + '</td>'
+                        + '<td><span class="status-badge ' + (p.status === 'active' ? 'status-success' : 'status-danger') + '">' + (p.status === 'active' ? '启用' : '禁用') + '</span></td>'
+                        + '<td><div class="action-btns">'
+                        + '<button class="action-btn edit" title="编辑" onclick="editProject(\'' + p.id + '\')"><i class="fas fa-edit"></i></button>'
+                        + '<button class="action-btn delete" title="删除" onclick="deleteProject(\'' + p.id + '\',\'' + escapeHtml(p.name) + '\')"><i class="fas fa-trash"></i></button>'
+                        + '</div></td>'
+                        + '</tr>';
+                });
+                tbody.innerHTML = html;
+            }
+            renderPaginationHtml('projectPagination', result.page, result.totalPages, result.total, 'renderProjects');
+        }
+
+        function openProjectModal() {
+            document.getElementById('projectEditId').value = '';
+            document.getElementById('projectName').value = '';
+            document.getElementById('projectCategory').value = '';
+            document.getElementById('projectDesc').value = '';
+            document.getElementById('projectImage').value = '';
+            document.getElementById('projectLink').value = '';
+            document.getElementById('projectSort').value = 0;
+            document.getElementById('projectStatus').value = 'active';
+            document.getElementById('projectModalTitle').textContent = '新增项目';
+            openModal('modal-project');
+        }
+
+        function editProject(id) {
+            try {
+                var projects = dataManager.getProjects() || [];
+                var p = projects.find(function(item) { return item.id === id; });
+                if (!p) { showToast('未找到该项目', 'error'); return; }
+                document.getElementById('projectEditId').value = p.id;
+                document.getElementById('projectName').value = p.name || '';
+                document.getElementById('projectCategory').value = p.category || '';
+                document.getElementById('projectDesc').value = p.description || '';
+                document.getElementById('projectImage').value = p.image || '';
+                document.getElementById('projectLink').value = p.link || '';
+                document.getElementById('projectSort').value = p.sort !== undefined ? p.sort : 0;
+                document.getElementById('projectStatus').value = p.status || 'active';
+                document.getElementById('projectModalTitle').textContent = '编辑项目';
+                openModal('modal-project');
+            } catch(e) { showToast('加载项目数据失败', 'error'); }
+        }
+
+        function saveProject() {
+            var name = document.getElementById('projectName').value.trim();
+            if (!name) { showToast('请输入项目名称', 'warning'); return; }
+            try {
+                var data = {
+                    name: name,
+                    category: document.getElementById('projectCategory').value.trim(),
+                    description: document.getElementById('projectDesc').value.trim(),
+                    image: document.getElementById('projectImage').value.trim(),
+                    link: document.getElementById('projectLink').value.trim(),
+                    sort: parseInt(document.getElementById('projectSort').value) || 0,
+                    status: document.getElementById('projectStatus').value
+                };
+                var editId = document.getElementById('projectEditId').value;
+                if (editId) {
+                    dataManager.updateProject(editId, data);
+                    showToast('项目更新成功', 'success');
+                } else {
+                    dataManager.addProject(data);
+                    showToast('项目添加成功', 'success');
+                }
+                closeModal('modal-project');
+                renderProjects();
+            } catch(e) { showToast('保存失败: ' + e.message, 'error'); }
+        }
+
+        function deleteProject(id, name) {
+            showDeleteConfirm('project', id, null, '确定要删除项目"' + name + '"吗？此操作不可恢复。');
+        }
+
+        /* ============================================================
+         *  新闻管理
+         * ============================================================ */
+        var newsCurrentPage = 1;
+
+        function renderNews(page) {
+            if (page !== undefined) newsCurrentPage = page;
+            try {
+                var all = dataManager.getNews() || [];
+            } catch(e) { all = []; }
+            var keyword = (document.getElementById('newsSearch') || {}).value || '';
+            if (keyword) {
+                var kw = keyword.toLowerCase();
+                all = all.filter(function(n) { return (n.title || '').toLowerCase().indexOf(kw) > -1; });
+            }
+            var result = paginate(all, newsCurrentPage, PAGE_SIZE);
+            newsCurrentPage = result.page;
+
+            var tbody = document.getElementById('newsTableBody');
+            if (!tbody) return;
+            if (result.items.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7"><div class="empty-state"><i class="fas fa-newspaper"></i><h3>暂无新闻数据</h3><p>点击"新增新闻"按钮添加</p></div></td></tr>';
+            } else {
+                var html = '';
+                result.items.forEach(function(n, i) {
+                    html += '<tr>'
+                        + '<td>' + ((result.page - 1) * PAGE_SIZE + i + 1) + '</td>'
+                        + '<td><strong>' + escapeHtml(n.title || '') + '</strong></td>'
+                        + '<td>' + escapeHtml(n.category || '-') + '</td>'
+                        + '<td>' + escapeHtml(n.date || '-') + '</td>'
+                        + '<td>' + (n.sort !== undefined ? n.sort : 0) + '</td>'
+                        + '<td><span class="status-badge ' + (n.status === 'active' ? 'status-success' : 'status-danger') + '">' + (n.status === 'active' ? '启用' : '禁用') + '</span></td>'
+                        + '<td><div class="action-btns">'
+                        + '<button class="action-btn edit" title="编辑" onclick="editNews(\'' + n.id + '\')"><i class="fas fa-edit"></i></button>'
+                        + '<button class="action-btn delete" title="删除" onclick="deleteNews(\'' + n.id + '\',\'' + escapeHtml(n.title) + '\')"><i class="fas fa-trash"></i></button>'
+                        + '</div></td>'
+                        + '</tr>';
+                });
+                tbody.innerHTML = html;
+            }
+            renderPaginationHtml('newsPagination', result.page, result.totalPages, result.total, 'renderNews');
+        }
+
+        function openNewsModal() {
+            document.getElementById('newsEditId').value = '';
+            document.getElementById('newsTitle').value = '';
+            document.getElementById('newsCategory').value = '';
+            document.getElementById('newsDate').value = new Date().toISOString().slice(0, 10);
+            document.getElementById('newsSummary').value = '';
+            document.getElementById('newsContent').value = '';
+            document.getElementById('newsImage').value = '';
+            document.getElementById('newsSource').value = '';
+            document.getElementById('newsSort').value = 0;
+            document.getElementById('newsStatus').value = 'active';
+            document.getElementById('newsModalTitle').textContent = '新增新闻';
+            openModal('modal-news');
+        }
+
+        function editNews(id) {
+            try {
+                var newsList = dataManager.getNews() || [];
+                var n = newsList.find(function(item) { return item.id === id; });
+                if (!n) { showToast('未找到该新闻', 'error'); return; }
+                document.getElementById('newsEditId').value = n.id;
+                document.getElementById('newsTitle').value = n.title || '';
+                document.getElementById('newsCategory').value = n.category || '';
+                document.getElementById('newsDate').value = n.date || '';
+                document.getElementById('newsSummary').value = n.summary || '';
+                document.getElementById('newsContent').value = n.content || '';
+                document.getElementById('newsImage').value = n.image || '';
+                document.getElementById('newsSource').value = n.source || '';
+                document.getElementById('newsSort').value = n.sort !== undefined ? n.sort : 0;
+                document.getElementById('newsStatus').value = n.status || 'active';
+                document.getElementById('newsModalTitle').textContent = '编辑新闻';
+                openModal('modal-news');
+            } catch(e) { showToast('加载新闻数据失败', 'error'); }
+        }
+
+        function saveNews() {
+            var title = document.getElementById('newsTitle').value.trim();
+            if (!title) { showToast('请输入新闻标题', 'warning'); return; }
+            try {
+                var data = {
+                    title: title,
+                    category: document.getElementById('newsCategory').value.trim(),
+                    date: document.getElementById('newsDate').value,
+                    summary: document.getElementById('newsSummary').value.trim(),
+                    content: document.getElementById('newsContent').value.trim(),
+                    image: document.getElementById('newsImage').value.trim(),
+                    source: document.getElementById('newsSource').value.trim(),
+                    sort: parseInt(document.getElementById('newsSort').value) || 0,
+                    status: document.getElementById('newsStatus').value
+                };
+                var editId = document.getElementById('newsEditId').value;
+                if (editId) {
+                    dataManager.updateNews(editId, data);
+                    showToast('新闻更新成功', 'success');
+                } else {
+                    dataManager.addNews(data);
+                    showToast('新闻添加成功', 'success');
+                }
+                closeModal('modal-news');
+                renderNews();
+            } catch(e) { showToast('保存失败: ' + e.message, 'error'); }
+        }
+
+        function deleteNews(id, title) {
+            showDeleteConfirm('news', id, null, '确定要删除新闻"' + title + '"吗？此操作不可恢复。');
+        }
+
+        /* ============================================================
+         *  轮播图管理
+         * ============================================================ */
+        function renderBanners() {
+            var container = document.getElementById('bannerListContainer');
+            if (!container) return;
+            try {
+                var banners = dataManager.getBanners() || [];
+            } catch(e) { banners = []; }
+
+            if (banners.length === 0) {
+                container.innerHTML = '<div class="empty-state"><i class="fas fa-images"></i><h3>暂无轮播图</h3><p>点击"新增轮播图"按钮添加</p></div>';
+                return;
+            }
+
+            var html = '';
+            banners.forEach(function(b, i) {
+                html += '<div class="banner-item">'
+                    + '<div class="banner-thumb">'
+                    + (b.image ? '<img src="' + escapeHtml(b.image) + '" alt="' + escapeHtml(b.title || '') + '">' : '<i class="fas fa-image" style="font-size:24px;color:#ccc;"></i>')
+                    + '</div>'
+                    + '<div class="banner-info">'
+                    + '<h4>' + escapeHtml(b.title || '未命名') + '</h4>'
+                    + '<p>' + escapeHtml(b.subtitle || '') + (b.link ? ' | 链接: ' + escapeHtml(b.link) : '') + '</p>'
+                    + '</div>'
+                    + '<div class="action-btns">'
+                    + '<button class="action-btn edit" title="编辑" onclick="editBanner(' + i + ')"><i class="fas fa-edit"></i></button>'
+                    + '<button class="action-btn delete" title="删除" onclick="deleteBanner(' + i + ',\'' + escapeHtml(b.title || '') + '\')"><i class="fas fa-trash"></i></button>'
+                    + '</div>'
+                    + '</div>';
+            });
+            container.innerHTML = html;
+        }
+
+        function openBannerModal() {
+            document.getElementById('bannerEditIndex').value = -1;
+            document.getElementById('bannerTitle').value = '';
+            document.getElementById('bannerSubtitle').value = '';
+            document.getElementById('bannerImage').value = '';
+            document.getElementById('bannerLink').value = '';
+            document.getElementById('bannerModalTitle').textContent = '新增轮播图';
+            openModal('modal-banner');
+        }
+
+        function editBanner(index) {
+            try {
+                var banners = dataManager.getBanners() || [];
+                var b = banners[index];
+                if (!b) { showToast('未找到该轮播图', 'error'); return; }
+                document.getElementById('bannerEditIndex').value = index;
+                document.getElementById('bannerTitle').value = b.title || '';
+                document.getElementById('bannerSubtitle').value = b.subtitle || '';
+                document.getElementById('bannerImage').value = b.image || '';
+                document.getElementById('bannerLink').value = b.link || '';
+                document.getElementById('bannerModalTitle').textContent = '编辑轮播图';
+                openModal('modal-banner');
+            } catch(e) { showToast('加载轮播图数据失败', 'error'); }
+        }
+
+        function saveBannerItem() {
+            var title = document.getElementById('bannerTitle').value.trim();
+            var image = document.getElementById('bannerImage').value.trim();
+            if (!title) { showToast('请输入轮播图标题', 'warning'); return; }
+            if (!image) { showToast('请输入图片地址', 'warning'); return; }
+
+            try {
+                var banners = dataManager.getBanners() || [];
+                var item = {
+                    title: title,
+                    subtitle: document.getElementById('bannerSubtitle').value.trim(),
+                    image: image,
+                    link: document.getElementById('bannerLink').value.trim()
+                };
+                var index = parseInt(document.getElementById('bannerEditIndex').value);
+                if (index >= 0) {
+                    banners[index] = item;
+                    showToast('轮播图更新成功', 'success');
+                } else {
+                    banners.push(item);
+                    showToast('轮播图添加成功', 'success');
+                }
+                dataManager.updateBanners(banners);
+                closeModal('modal-banner');
+                renderBanners();
+            } catch(e) { showToast('保存失败: ' + e.message, 'error'); }
+        }
+
+        function saveBanners() {
+            showToast('轮播图设置已保存', 'success');
+        }
+
+        function deleteBanner(index, title) {
+            showDeleteConfirm('banner', null, index, '确定要删除轮播图"' + title + '"吗？');
+        }
+
+        /* ============================================================
+         *  统计数据管理
+         * ============================================================ */
+        function renderStatsEdit() {
+            var container = document.getElementById('statsEditContainer');
+            if (!container) return;
+            try {
+                var stats = dataManager.getStats() || {};
+            } catch(e) { stats = {}; }
+
+            // 常见的统计字段
+            var fields = [
+                { key: 'years', label: '成立年限' },
+                { key: 'clients', label: '服务客户数' },
+                { key: 'projects', label: '完成项目数' },
+                { key: 'policies', label: '保单数量' },
+                { key: 'amount', label: '累计金额(万)' },
+                { key: 'satisfaction', label: '满意度(%)' }
+            ];
+
+            var html = '';
+            fields.forEach(function(f) {
+                var val = stats[f.key] !== undefined ? stats[f.key] : '';
+                html += '<div class="stats-edit-item">'
+                    + '<label>' + f.label + '</label>'
+                    + '<input type="text" data-stats-key="' + f.key + '" value="' + escapeHtml(String(val)) + '" placeholder="请输入' + f.label + '">'
+                    + '</div>';
+            });
+            container.innerHTML = html;
+        }
+
+        function saveStats() {
+            try {
+                var stats = {};
+                var inputs = document.querySelectorAll('#statsEditContainer input[data-stats-key]');
+                inputs.forEach(function(input) {
+                    var key = input.getAttribute('data-stats-key');
+                    var val = input.value.trim();
+                    // 尝试转为数字
+                    stats[key] = isNaN(val) || val === '' ? val : Number(val);
+                });
+                dataManager.updateStats(stats);
+                showToast('统计数据保存成功', 'success');
+            } catch(e) { showToast('保存失败: ' + e.message, 'error'); }
+        }
+
+        /* ============================================================
+         *  工具函数
+         * ============================================================ */
+        function escapeHtml(str) {
+            if (!str) return '';
+            return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+        }
+
+        function truncate(str, len) {
+            if (!str) return '';
+            return str.length > len ? str.substring(0, len) + '...' : str;
+        }
+
+        /* ============================================================
+         *  初始化
+         * ============================================================ */
+        document.addEventListener('DOMContentLoaded', function() {
+            // 默认展开保单管理子菜单
+            var policyMenu = document.querySelector('.menu-item:nth-child(4)');
+            if (policyMenu) {
+                policyMenu.classList.add('expanded');
+                var sub = policyMenu.nextElementSibling;
+                if (sub) sub.classList.add('show');
+            }
+        });
+    </script>
+</body>
+</html>
